@@ -503,7 +503,18 @@ module Axlsx
       # When the type is :dxf we always need to create a new numFmt object
       if options[:format_code] || options[:type] == :dxf
         # If this is a standard xf we pull from numFmts the highest current and increment for num_fmt
-        options[:num_fmt] ||= (@numFmts.map(&:numFmtId).max + 1) if options[:type] != :dxf
+        if options[:type] != :dxf
+          if options[:format_code]
+            # when format_code not nil Automatically generate numFmtId
+            find_num_fmt = @numFmts.find { |num_fmt| num_fmt.formatCode == options[:format_code].to_s }
+            return find_num_fmt.numFmtId if find_num_fmt
+            # XLSX stipulates custom numFmtId starting from 164
+            options[:num_fmt] = (@numFmts.map(&:numFmtId).max + 1)
+          elsif NumFmt.default_num_fmt_ids.include?(options[:num_fmt])
+            # don't modify format_code of default num_fmt
+            return options[:num_fmt]
+          end
+        end
         numFmt = NumFmt.new(numFmtId: options[:num_fmt] || 0, formatCode: options[:format_code].to_s)
         if options[:type] == :dxf
           numFmt
